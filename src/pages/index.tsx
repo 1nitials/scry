@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
 
+interface ApiData {
+  message: string
+}
+
 export default function Home() {
-  const [data, setData] = useState(null)
+  const [data, setData] = useState<ApiData | null>(null)
 
   useEffect(() => {
     fetch('http://localhost:3001/api/data')
