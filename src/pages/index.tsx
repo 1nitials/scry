@@ -27,29 +27,39 @@ export default function Home() {
     })
     .then(res => res.json())
     .then(setData)
+    .catch(console.error)
   }
 
   return (
-    <div className="w-96 h-96 p-4 bg-gray-100">
-      <h1 className="text-2xl font-bold text-blue-600 mb-2">Scry</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-8">
+      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl p-8">
+        
+        <h1 className="text-4xl font-bold text-blue-600 mb-8 text-center">Scry</h1>
 
-      <form>
-        <textarea 
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        style={{ resize: 'none' }} 
-        className="bg-grey border border-black w-full mt-4 p-2
-        placeholder:text-gray-400 placeholder:italic"
-        placeholder="What do you want to find?" 
-        rows={5}></textarea>
-        <button onClick={sendPrompt} className="bg-blue-700 text-white font-bold rounded-xl px-4 py-2 mt-2">Submit</button>
-      </form>
+        <form className="space-y-4">
+          <textarea 
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            style={{ resize: 'none' }} 
+            className="w-full border-2 border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none
+            placeholder:text-gray-400 placeholder:italic"
+            placeholder="What do you want to find?" 
+            rows={8}
+          />
+          <button 
+            onClick={sendPrompt} 
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg px-6 py-3 transition-colors"
+          >
+            Submit
+          </button>
+        </form>
 
-      {data && (
-        <div className="mt-4 p-3 bg-white rounded shadow max-h-[300px] overflow-y-scroll">
-          <p className="text-sm">{data.message}</p>
+        <div className="mt-6 p-6 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
+          {data ? ( <p className="text-gray-800 whitespace-pre-wrap">{data.message}</p> )
+          : ( <p className="text-gray-800 whitespace-pre-wrap">Connect to backend first!</p> )}
         </div>
-      )}
+
+      </div>
     </div>
   )
 }
