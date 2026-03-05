@@ -5,7 +5,17 @@ module.exports = {
     './src/components/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'custom-blue': '#6B6DE4',
+        'custom-dark-blue': '#301892'
+      },
+      fontFamily: {
+        pirata: ['var(--font-pirata)'],
+        prata: ['var(--font-prata)'],
+        neuton: ['var(--font-neuton)'],
+      },
+    },
   },
   plugins: [],
 }
