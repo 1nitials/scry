@@ -1,18 +1,35 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface ApiData {
   message: string
 }
 
+interface Message {
+  type: 'user' | 'ai'
+  content: string
+}
+
 export default function Home() {
   const [data, setData] = useState<ApiData | null>(null)
-  const [messages, setMessages] = useState<string[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [prompt, setPrompt] = useState<string>('')
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const handleChange = (e) => {
+    setPrompt(e.target.value)
+
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+    }
+  }
 
   const sendPrompt = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
 
-    setMessages(prev => [...prev, `User: ${prompt}`])
+    setMessages(prev => [...prev, { type: 'user', content: prompt }])
+    setPrompt('')
     setData({ message: '' })
 
     const response = await fetch('http://localhost:3001/api/data', {
@@ -28,7 +45,8 @@ export default function Home() {
 
     let fullMessage = ''
     const aiMessageIndex = messages.length + 1
-    setMessages(prev => [...prev, `AI: ${fullMessage}`])
+    setMessages(prev => [...prev, { type: 'ai', content: fullMessage }])
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
 
     while(true) {
       const { done, value } = await reader!.read()
@@ -44,7 +62,7 @@ export default function Home() {
 
           setMessages(prev => {
             const updated = [...prev]
-            updated[aiMessageIndex] = `AI: ${fullMessage}`
+            updated[aiMessageIndex] = {type: 'ai', content: fullMessage }
             return updated
           })
         }
@@ -52,86 +70,54 @@ export default function Home() {
     }
   }
 
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  const handleChange = (e) => {
-    setPrompt(e.target.value)
-
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendPrompt(e as any)
     }
   }
 
-  {/* 
-      return (
-
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-8">
-      <div className="max-w-4xl w-full bg-white rounded-2xl shadow-xl p-8">
-        
-        <h1 className="text-4xl font-bold text-blue-600 mb-8 text-center">Scry</h1>
-
-        <div className="mt-6 mb-6 p-6 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
-          {messages.map((msg, index) => (
-            <div className="mt-6 mb-6 p-6 bg-gray-50 rounded-lg border border-gray-200 max-h-96 overflow-y-auto">
-              <p key={index} className="text-gray-800 whitespace-pre-wrap">{msg}</p>
-            </div>
-          ))}
-        </div>
-
-        <form className="space-y-4">
-          <textarea
-            value={prompt}
-            ref={textareaRef}
-            onChange={handleChange}
-            className="w-full border-2 border-gray-300 rounded-lg p-4 focus:border-blue-500 focus:outline-none
-            placeholder:text-gray-400 placeholder:italic max-h-[300px]"
-            placeholder="What do you want to find?" 
-          />
-          <button 
-            onClick={sendPrompt} 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg px-6 py-3 transition-colors"
-          >
-            Submit
-          </button>
-        </form>
-
-      </div>
-    </div>
-  )
-    
-    */}
-
   return (
 
-    <div className="min-h-screen bg-custom-blue flex p-8">
+    <div className="h-screen bg-custom-blue flex p-8">
       <div className="max-w-screen w-full flex border border-white rounded-2xl">
         <div className="w-1/2 rounded-2xl p-8 text-white">
           <h1 className="font-pirata uppercase text-[72px]">Scry</h1>
           <p className="font-neuton leading-[1.0] text-[24px]">AI programming documentation lookup assistant</p>
         </div>
-        <div className="max-w-screen w-full flex flex-col justify-end bg-custom-dark-blue rounded-2xl p-8 text-white">
-          <h1 className="font-prata text-center text-[32px] mb-16">How may I be of <br/> assistance right now?</h1>
-          <form className="space-y-4">
+        
+          <div className="max-w-screen w-full flex flex-col justify-end bg-custom-dark-blue rounded-2xl p-8 text-white">
+            {messages.length > 0 && <div className="flex flex-col mb-6 p-2 rounded-lg flex-1 overflow-y-scroll">
+              {messages.map((msg, index) => {
+               const typeVariance = msg.type === 'user' ? 'text-right text-ai-color' : 'text-left text-white'
+                return (
+                  <div className={`p-4 ${typeVariance} rounded-lg font-neuton`}>
+                    <p key={index} className="text-[18px] whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                )
+            })}
+            <div ref={messagesEndRef} />
+          </div>}
+          
+          {messages.length === 0 && <h1 className="font-prata text-center text-[24px] mb-16">How may I be of <br/> assistance right now?</h1>}
+
+          <div className="space-y-4 flex flex-row bg-white rounded-lg">
             <textarea
+              onKeyDown={handleKeyDown}
               value={prompt}
               ref={textareaRef}
               onChange={handleChange}
               style={{resize: 'none'}}
-              className="w-full rounded-lg p-4 focus:border-blue-500 focus:outline-none text-black font-neuton text-[20px]
+              className="w-full bg-transparent p-4 focus:outline-none text-black font-neuton text-[20px]
               placeholder:text-[20px] placeholder:text-gray-400 placeholder:font-neuton placeholder:italic max-h-[150px] xl:max-h-[400px]"
               placeholder="What do you want to find?" 
             />
-            <button 
-              onClick={sendPrompt} 
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg px-6 py-3 transition-colors"
-            >
-              Submit
+            <button onClick={sendPrompt} className="text-black flex items-start px-2">
+              <img src="/img/back-to-top.png" className="w-8 h-8" alt="Submit button"/>
             </button>
-          </form>
+          </div>
         </div>
       </div>
     </div>
   )
-
 }

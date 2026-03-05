@@ -8,7 +8,8 @@ module.exports = {
     extend: {
       colors: {
         'custom-blue': '#6B6DE4',
-        'custom-dark-blue': '#301892'
+        'custom-dark-blue': '#301892',
+        'ai-color': '#a0f1af'
       },
       fontFamily: {
         pirata: ['var(--font-pirata)'],
