@@ -9,9 +9,16 @@ interface Message {
   content: string
 }
 
+interface Conversation {
+  id: number,
+  title: string
+}
+
 export default function Home() {
   const [data, setData] = useState<ApiData | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [currentConversationId, setCurrentConversationId] = useState<number | null>(null)
   const [prompt, setPrompt] = useState<string>('')
 
   const [{loading, streaming}, setState] = useState({
@@ -40,6 +47,21 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    if (currentConversationId) {
+      fetch(`http://localhost:3001/api/messages/${currentConversationId}`)
+        .then(res => res.json())
+        .then(setMessages)
+    }
+  }, [currentConversationId])
+  useEffect(() => {
+    fetch('http://localhost:3001/api/conversations')
+      .then(res => res.json())
+      .then(data => {
+        setConversations(data)
+      })
+  }, [])
+
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendPrompt = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault()
@@ -63,7 +85,9 @@ export default function Home() {
       },
       body: JSON.stringify({ 
         prompt,
-        context })
+        context,
+        currentConversationId
+      })
     })
 
     const reader = response.body?.getReader()
@@ -91,13 +115,21 @@ export default function Home() {
       for (const line of lines) {
         if (line.startsWith('data: ') && line !== 'data: [DONE]') {
           const data = JSON.parse(line.slice(6))
-          fullMessage += data.content
 
-          setMessages(prev => {
-            const updated = [...prev]
-            updated[aiMessageIndex] = {type: 'ai', content: fullMessage }
-            return updated
-          })
+          if (data.conversationId) {
+            setCurrentConversationId(data.conversationId)
+            fetch('/api/conversations')
+              .then(res => res.json())
+              .then(setConversations)
+          } else {
+            fullMessage += data.content
+
+            setMessages(prev => {
+              const updated = [...prev]
+              updated[aiMessageIndex] = {type: 'ai', content: fullMessage }
+              return updated
+            })
+          }
         }
       }
     }
@@ -118,13 +150,22 @@ export default function Home() {
       <div className="max-w-screen w-full flex border border-white rounded-2xl">
         <div className="w-1/2 rounded-2xl p-8 text-white">
           <h1 className="font-pirata uppercase text-[72px]">Scry</h1>
-          <p className="font-neuton leading-[1.0] text-[24px]">AI programming documentation lookup assistant</p>
+          <p className="font-neuton leading-[1.0] text-[24px] border-b border-white pb-6">AI programming documentation lookup assistant</p>
+          {conversations.length > 0 && <div className="pt-4 space-y-4">
+            {conversations.map(conv => (
+              <div key={conv.id} 
+              onClick={() => setCurrentConversationId(conv.id)}
+              className="border-b border-white p-2 pb-2 text-right hover:bg-conversation-hover hover:cursor-pointer">
+                <p className="font-neuton text-[20px]">{conv.title}</p>
+              </div>
+            ))}
+          </div>}
         </div>
         
           <div className="max-w-screen w-full flex flex-col justify-end bg-custom-dark-blue rounded-2xl p-8 text-white">
             {messages.length > 0 && <div className="flex flex-col mb-6 p-2 rounded-lg flex-1 overflow-y-scroll">
               {messages.map((msg, index) => {
-               const typeVariance = msg.type === 'user' ? 'text-right text-ai-color' : 'text-left text-white'
+               const typeVariance = msg.type === 'user' ? 'text-right text-user-color' : 'text-left text-white'
                 return (
                   <div key={index} className={`p-4 ${typeVariance} rounded-lg font-neuton`}>
                     <p className="text-[18px] whitespace-pre-wrap">{msg.content}</p>

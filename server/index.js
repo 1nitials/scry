@@ -1,10 +1,10 @@
-require('dotenv').config()
-
 const express = require('express')
 const cors = require('cors')
 
 const { Ollama } = require('ollama')
 const ollama = new Ollama({host: 'http://localhost:11434' })
+
+const { saveMessage, getMessages, createConversation, getConversations } = require('./database')
 
 const app = express()
 const PORT = 3001
@@ -17,7 +17,13 @@ app.get('/api/data', (req, res) => {
 })
 
 app.post('/api/data', async (req, res) => {
-  const { prompt, context } = req.body;
+  const { prompt, context, currentConversationId } = req.body;
+
+  let conversationId = currentConversationId;
+  if (conversationId === null) { 
+    conversationId = createConversation('New conversation') 
+  }
+  saveMessage(conversationId, 'user', prompt);
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -43,12 +49,27 @@ app.post('/api/data', async (req, res) => {
     ],
   });
   
+  let fullMessage = '';
   for await (const chunk of stream) {
+    fullMessage += chunk.message.content;
     res.write(`data: ${JSON.stringify({ content: chunk.message.content })}\n\n`);
   }
+
+  saveMessage(conversationId, 'ai', fullMessage);
   
+  res.write(`data: ${JSON.stringify({ conversationId })}\n\n`);
   res.write('data: [DONE]\n\n');
   res.end();
+})
+
+app.get('/api/messages/:conversationId', (req, res) => {
+  const conversationId = parseInt(req.params.conversationId)
+  const messages = getMessages(conversationId)
+  res.json(messages.map(msg => ({ type: msg.type, content: msg.content })))
+})
+
+app.get('/api/conversations', (req, res) => {
+  res.json(getConversations())
 })
 
 app.listen(PORT, () => {
