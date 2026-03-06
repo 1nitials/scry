@@ -17,7 +17,7 @@ app.get('/api/data', (req, res) => {
 })
 
 app.post('/api/data', async (req, res) => {
-  const userPrompt = req.body.prompt;
+  const { prompt, context } = req.body;
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -28,8 +28,17 @@ app.post('/api/data', async (req, res) => {
     stream: true,
     messages: [
       {
+        role: "system",
+        content: `
+        Relevant context: ${JSON.stringify(context, null, 2)}
+
+        You are an expert software engineer.
+        Answer the user question using the context above.
+        `,
+      },
+      {
         role: "user",
-        content: userPrompt,
+        content: prompt,
       },
     ],
   });
