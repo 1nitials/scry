@@ -37,6 +37,14 @@ export default function Home() {
     setStreaming(false)
   }
 
+  const [isHovered, setIsHovered] = useState<number | null>(null);
+  const handleMouseEnter = (index) => {
+    setIsHovered(index)
+  }
+  const handleMouseLeave = () => {
+    setIsHovered(null)
+  }
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const handleChange = (e) => {
     setPrompt(e.target.value)
@@ -61,6 +69,15 @@ export default function Home() {
         setConversations(data)
       })
   }, [])
+  const deleteConversation = async (e: React.MouseEvent<HTMLButtonElement>, id: number) => {
+    await fetch(`http://localhost:3001/api/conversations/${id}`, { method: 'DELETE' })
+    setConversations(prev => prev.filter(conv => conv.id !== id))
+    if (currentConversationId === id) {
+      setCurrentConversationId(null)
+      setMessages([])
+    }
+  }
+
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sendPrompt = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -118,7 +135,7 @@ export default function Home() {
 
           if (data.conversationId) {
             setCurrentConversationId(data.conversationId)
-            fetch('/api/conversations')
+            fetch('http://localhost:3001/api/conversations')
               .then(res => res.json())
               .then(setConversations)
           } else {
@@ -135,6 +152,8 @@ export default function Home() {
     }
   }
 
+
+  
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -152,11 +171,17 @@ export default function Home() {
           <h1 className="font-pirata uppercase text-[72px]">Scry</h1>
           <p className="font-neuton leading-[1.0] text-[24px] border-b border-white pb-6">AI programming documentation lookup assistant</p>
           {conversations.length > 0 && <div className="pt-4 space-y-4">
-            {conversations.map(conv => (
-              <div key={conv.id} 
+            {conversations.map((conv, index) => (
+              <div key={conv.id}
+              onMouseEnter={() => handleMouseEnter(index)}
+              onMouseLeave={handleMouseLeave}
               onClick={() => setCurrentConversationId(conv.id)}
-              className="border-b border-white p-2 pb-2 text-right hover:bg-conversation-hover hover:cursor-pointer">
-                <p className="font-neuton text-[20px]">{conv.title}</p>
+              className="flex border-b border-white p-2 pb-2 hover:bg-conversation-hover">
+                {isHovered === index && <button onClick={(e) => {
+                  e.stopPropagation()
+                  deleteConversation(e, conv.id)
+                }} className="text-white border-2 border-white rounded font-bold px-2">X</button>}
+                <p className="font-neuton ml-auto text-[20px]">{conv.title}</p>
               </div>
             ))}
           </div>}

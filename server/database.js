@@ -30,9 +30,14 @@ const getConversations = () => {
     return stmt.all()
 }
 
-const clearConversation = () => {
-    const stmt = db.prepare('DELETE FROM conversations')
-    return stmt.run()
+const clearConversation = (conversation_id) => {
+    const stmt = db.prepare('DELETE FROM conversations WHERE id = ?')
+    return stmt.run(conversation_id)
+}
+
+const updateConversationTitle = (conversation_id, title) => {
+    const stmt = db.prepare('UPDATE conversations SET title = ? WHERE id = ?')
+    return stmt.run(title, conversation_id)
 }
 
 const saveMessage = (conversation_id, type, content) => {
@@ -45,15 +50,16 @@ const getMessages = (conversation_id) => {
     return stmt.all(conversation_id)
 }
 
-const clearMessages = () => {
-    const stmt = db.prepare('DELETE FROM messages')
-    return stmt.run()
+const clearMessages = (message_id) => {
+    const stmt = db.prepare('DELETE FROM messages WHERE id = ?')
+    return stmt.run(message_id)
 }
 
 module.exports = {
     createConversation,
     clearConversation,
     getConversations,
+    updateConversationTitle,
     saveMessage,
     getMessages,
     clearMessages
